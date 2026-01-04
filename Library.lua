@@ -20283,7 +20283,19 @@ function Xan:CreateWindow(config)
     end)
     -- expose window config name for external scripts
     window.ConfigName = configName
-    
+
+    -- attempt silent load of saved configuration (no notifications)
+    task.spawn(function()
+        if saveConfig and readfile then
+            pcall(function()
+                -- suppress autosave while loading
+                Xan._SuppressAutosave = true
+                Xan:LoadConfigurationSilent(configName)
+                Xan._SuppressAutosave = false
+            end)
+        end
+    end)
+
     return window
 end
 
@@ -23672,6 +23684,49 @@ function Xan:SaveConfigurationSilent(configName)
     else
         return false
     end
+end
+
+function Xan:LoadConfigurationSilent(configName)
+    configName = configName or "default"
+    if not readfile then
+        return false
+    end
+
+    local folderPath = ConfigurationManager.SaveFolder
+    local filePath = folderPath .. "/" .. configName .. ".json"
+
+    local success, content = pcall(function()
+        return readfile(filePath)
+    end)
+    if not success or not content then
+        return false
+    end
+
+    local decodeSuccess, data = pcall(function()
+        return HttpService:JSONDecode(content)
+    end)
+    if not decodeSuccess or not data then
+        return false
+    end
+
+    -- apply flags without notifications and while autosave suppressed by caller
+    for flag, value in pairs(data.Flags or {}) do
+        if type(value) == "table" then
+            if value.Type == "Color3" then
+                self:SetFlag(flag, Color3.new(value.R, value.G, value.B))
+            elseif value.Type == "EnumItem" then
+                pcall(function()
+                    self:SetFlag(flag, Enum[value.EnumType][value.Name])
+                end)
+            elseif value.Type == "Table" then
+                self:SetFlag(flag, value.Value)
+            end
+        else
+            self:SetFlag(flag, value)
+        end
+    end
+
+    return true
 end
 
 function Xan:LoadConfiguration(configName)
@@ -28442,10 +28497,12 @@ Xan.GetFlag = function(name) return _originalGetFlag(Xan, name) end
 Xan.SetFlag = function(name, val)
     local res = _originalSetFlag(Xan, name, val)
     -- autosave silently to the default config name when any flag changes
-    pcall(function()
-        local cfgName = Xan.DefaultConfigName or "default"
-        Xan:SaveConfigurationSilent(cfgName)
-    end)
+    if not Xan._SuppressAutosave then
+        pcall(function()
+            local cfgName = Xan.DefaultConfigName or "default"
+            Xan:SaveConfigurationSilent(cfgName)
+        end)
+    end
     return res
 end
 Xan.OnFlag = function(name, cb) return Xan:OnFlagChanged(name, cb) end
