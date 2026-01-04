@@ -30859,6 +30859,13 @@ do
 
 		if writefile then
 			writefile(fullPath, encoded)
+			-- ensure autoload.txt exists so the library can autoload this config on startup
+			pcall(function()
+				local autopath = self.Folder .. "/settings/autoload.txt"
+				if not isfile(autopath) then
+					writefile(autopath, name)
+				end
+			end)
 			return true
 		end
 
