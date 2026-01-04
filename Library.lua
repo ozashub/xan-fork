@@ -4807,6 +4807,8 @@ function Xan:CreateWindow(config)
     local minSize = config.MinSize or Vector2.new(400, 300)
     local saveConfig = config.SaveConfig ~= false
     local configName = config.ConfigName or title:gsub("%s+", "_"):lower()
+    -- expose default config name for autosave behavior
+    self.DefaultConfigName = configName
     local showUserInfo = config.ShowUserInfo ~= false
     local userAvatar = config.UserAvatar
     local userName = config.UserName or LocalPlayer.DisplayName
@@ -8881,7 +8883,7 @@ function Xan:CreateWindow(config)
             AnchorPoint = Vector2.new(0, 0.5),
             Position = UDim2.new(0, titleOffset, 0.5, 0),
             Size = UDim2.new(0, importInputWidth, 0, IsMobile and 30 or 28),
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             Text = "",
             PlaceholderText = "Paste theme code...",
             TextColor3 = Xan.CurrentTheme.Text,
@@ -9094,7 +9096,7 @@ function Xan:CreateWindow(config)
                 Name = "HexLabel",
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, 0, 1, 0),
-                Font = Enum.Font.Code,
+                Font = Enum.Font.GothamMedium,
                 Text = string.format("#%02X%02X%02X", 
                     math.floor(currentColor.R * 255),
                     math.floor(currentColor.G * 255),
@@ -9250,7 +9252,7 @@ function Xan:CreateWindow(config)
                     BackgroundColor3 = Xan.CurrentTheme.Input,
                     Position = UDim2.new(0, 8, 1, -(IsMobile and 32 or 28)),
                     Size = UDim2.new(1, -16, 0, IsMobile and 26 or 22),
-                    Font = Enum.Font.Code,
+                    Font = Enum.Font.GothamMedium,
                     Text = "#" .. customTheme[colorKey]:ToHex():upper(),
                     TextColor3 = Xan.CurrentTheme.Text,
                     TextSize = IsMobile and 13 or 11,
@@ -9477,7 +9479,7 @@ function Xan:CreateWindow(config)
                 AnchorPoint = Vector2.new(1, 0.5),
                 Position = UDim2.new(1, 0, 0.5, 0),
                 Size = UDim2.new(0.68, 0, 0, IsMobile and 30 or 28),
-                Font = Enum.Font.Code,
+                Font = Enum.Font.GothamMedium,
                 Text = customTheme[key] or "",
                 PlaceholderText = "rbxassetid://...",
                 TextColor3 = Xan.CurrentTheme.Text,
@@ -9853,7 +9855,7 @@ function Xan:CreateWindow(config)
                 BackgroundColor3 = Xan.CurrentTheme.Input,
                 Position = UDim2.new(0, 12, 0, 36),
                 Size = UDim2.new(1, -24, 0, IsMobile and 50 or 44),
-                Font = Enum.Font.Code,
+                Font = Enum.Font.GothamMedium,
                 Text = code,
                 TextColor3 = Xan.CurrentTheme.Text,
                 TextSize = IsMobile and 9 or 10,
@@ -13079,7 +13081,7 @@ function Xan:CreateWindow(config)
                 Name = "Button",
                 BackgroundColor3 = Color3.fromRGB(50, 50, 55),
                 Size = UDim2.new(1, 0, 1, 0),
-                Font = Enum.Font.Code,
+                Font = Enum.Font.GothamMedium,
                 Text = name,
                 TextColor3 = Color3.fromRGB(220, 220, 220),
                 TextSize = IsMobile and 13 or 12,
@@ -14990,7 +14992,7 @@ function Xan:CreateWindow(config)
                 BackgroundColor3 = Xan.CurrentTheme.BackgroundTertiary,
                 Position = UDim2.new(1, -100, 0.5, -14),
                 Size = UDim2.new(0, 86, 0, 28),
-                Font = Enum.Font.Code,
+                Font = Enum.Font.GothamMedium,
                 Text = getKeyName(currentKey),
                 TextColor3 = Xan.CurrentTheme.Text,
                 TextSize = IsMobile and 12 or 11,
@@ -20279,6 +20281,8 @@ function Xan:CreateWindow(config)
             Xan:ShowBindList()
         end
     end)
+    -- expose window config name for external scripts
+    window.ConfigName = configName
     
     return window
 end
@@ -21738,7 +21742,7 @@ function Xan:CreateSideloader(config)
             Name = "Prefix",
             BackgroundTransparency = 1,
             Size = UDim2.new(0, 30, 1, 0),
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             Text = prefix,
             TextColor3 = prefixColor,
             TextSize = 13,
@@ -21752,7 +21756,7 @@ function Xan:CreateSideloader(config)
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 30, 0, 0),
             Size = UDim2.new(1, -30, 1, 0),
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             Text = text,
             TextColor3 = Color3.fromRGB(200, 200, 210),
             TextSize = 13,
@@ -23608,6 +23612,64 @@ function Xan:SaveConfiguration(configName)
             Type = "Warning",
             Duration = 4
         })
+        return false
+    end
+end
+
+function Xan:SaveConfigurationSilent(configName)
+    configName = configName or "default"
+    
+    local data = {
+        Flags = {},
+        Version = self.Version,
+        Timestamp = os.time()
+    }
+    
+    for flag, value in pairs(self.Flags) do
+        if type(value) == "boolean" or type(value) == "number" or type(value) == "string" then
+            data.Flags[flag] = value
+        elseif typeof(value) == "Color3" then
+            data.Flags[flag] = {
+                Type = "Color3",
+                R = value.R,
+                G = value.G,
+                B = value.B
+            }
+        elseif typeof(value) == "EnumItem" then
+            data.Flags[flag] = {
+                Type = "EnumItem",
+                EnumType = tostring(value.EnumType),
+                Name = value.Name
+            }
+        elseif type(value) == "table" then
+            data.Flags[flag] = {
+                Type = "Table",
+                Value = value
+            }
+        end
+    end
+    
+    local success, encoded = pcall(function()
+        return HttpService:JSONEncode(data)
+    end)
+    
+    if not success then
+        return false
+    end
+    
+    if writefile then
+        local folderPath = ConfigurationManager.SaveFolder
+        local filePath = folderPath .. "/" .. configName .. ".json"
+        
+        pcall(function()
+            if not isfolder(folderPath) then
+                makefolder(folderPath)
+            end
+            writefile(filePath, encoded)
+        end)
+        
+        return true
+    else
         return false
     end
 end
@@ -27695,7 +27757,7 @@ Xan.ToggleStatsWidget = function(enabled)
             Name = "FPS",
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0.5, 0),
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             Text = "FPS: --",
             TextColor3 = Xan.CurrentTheme.Accent,
             TextSize = 11,
@@ -27708,7 +27770,7 @@ Xan.ToggleStatsWidget = function(enabled)
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 0, 0.5, 0),
             Size = UDim2.new(1, 0, 0.5, 0),
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             Text = "Ping: --",
             TextColor3 = Xan.CurrentTheme.TextDim,
             TextSize = 11,
@@ -28377,7 +28439,15 @@ local _originalSetFlag = Xan.SetFlag
 
 Xan.Flag = function(name) return _originalGetFlag(Xan, name) end
 Xan.GetFlag = function(name) return _originalGetFlag(Xan, name) end
-Xan.SetFlag = function(name, val) return _originalSetFlag(Xan, name, val) end
+Xan.SetFlag = function(name, val)
+    local res = _originalSetFlag(Xan, name, val)
+    -- autosave silently to the default config name when any flag changes
+    pcall(function()
+        local cfgName = Xan.DefaultConfigName or "default"
+        Xan:SaveConfigurationSilent(cfgName)
+    end)
+    return res
+end
 Xan.OnFlag = function(name, cb) return Xan:OnFlagChanged(name, cb) end
 Xan.WatchFlag = Xan.OnFlag
 Xan.BindFlag = Xan.OnFlag
