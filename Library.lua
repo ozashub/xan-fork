@@ -8881,7 +8881,7 @@ function Xan:CreateWindow(config)
             AnchorPoint = Vector2.new(0, 0.5),
             Position = UDim2.new(0, titleOffset, 0.5, 0),
             Size = UDim2.new(0, importInputWidth, 0, IsMobile and 30 or 28),
-            Font = Font = Enum.Font.GothamMedium,
+            Font = Enum.Font.Code,
             Text = "",
             PlaceholderText = "Paste theme code...",
             TextColor3 = Xan.CurrentTheme.Text,
@@ -9094,7 +9094,7 @@ function Xan:CreateWindow(config)
                 Name = "HexLabel",
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, 0, 1, 0),
-                Font = Font = Enum.Font.GothamMedium,
+                Font = Enum.Font.Code,
                 Text = string.format("#%02X%02X%02X", 
                     math.floor(currentColor.R * 255),
                     math.floor(currentColor.G * 255),
@@ -9250,7 +9250,7 @@ function Xan:CreateWindow(config)
                     BackgroundColor3 = Xan.CurrentTheme.Input,
                     Position = UDim2.new(0, 8, 1, -(IsMobile and 32 or 28)),
                     Size = UDim2.new(1, -16, 0, IsMobile and 26 or 22),
-                    Font = Font = Enum.Font.GothamMedium,
+                    Font = Enum.Font.Code,
                     Text = "#" .. customTheme[colorKey]:ToHex():upper(),
                     TextColor3 = Xan.CurrentTheme.Text,
                     TextSize = IsMobile and 13 or 11,
@@ -9477,7 +9477,7 @@ function Xan:CreateWindow(config)
                 AnchorPoint = Vector2.new(1, 0.5),
                 Position = UDim2.new(1, 0, 0.5, 0),
                 Size = UDim2.new(0.68, 0, 0, IsMobile and 30 or 28),
-                Font = Font = Enum.Font.GothamMedium,
+                Font = Enum.Font.Code,
                 Text = customTheme[key] or "",
                 PlaceholderText = "rbxassetid://...",
                 TextColor3 = Xan.CurrentTheme.Text,
@@ -9853,7 +9853,7 @@ function Xan:CreateWindow(config)
                 BackgroundColor3 = Xan.CurrentTheme.Input,
                 Position = UDim2.new(0, 12, 0, 36),
                 Size = UDim2.new(1, -24, 0, IsMobile and 50 or 44),
-                Font = Font = Enum.Font.GothamMedium,
+                Font = Enum.Font.Code,
                 Text = code,
                 TextColor3 = Xan.CurrentTheme.Text,
                 TextSize = IsMobile and 9 or 10,
@@ -13079,7 +13079,7 @@ function Xan:CreateWindow(config)
                 Name = "Button",
                 BackgroundColor3 = Color3.fromRGB(50, 50, 55),
                 Size = UDim2.new(1, 0, 1, 0),
-                Font = Font = Enum.Font.GothamMedium,
+                Font = Enum.Font.Code,
                 Text = name,
                 TextColor3 = Color3.fromRGB(220, 220, 220),
                 TextSize = IsMobile and 13 or 12,
@@ -14990,7 +14990,7 @@ function Xan:CreateWindow(config)
                 BackgroundColor3 = Xan.CurrentTheme.BackgroundTertiary,
                 Position = UDim2.new(1, -100, 0.5, -14),
                 Size = UDim2.new(0, 86, 0, 28),
-                Font = Font = Enum.Font.GothamMedium,
+                Font = Enum.Font.Code,
                 Text = getKeyName(currentKey),
                 TextColor3 = Xan.CurrentTheme.Text,
                 TextSize = IsMobile and 12 or 11,
@@ -21738,7 +21738,7 @@ function Xan:CreateSideloader(config)
             Name = "Prefix",
             BackgroundTransparency = 1,
             Size = UDim2.new(0, 30, 1, 0),
-            Font = Font = Enum.Font.GothamMedium,
+            Font = Enum.Font.Code,
             Text = prefix,
             TextColor3 = prefixColor,
             TextSize = 13,
@@ -21752,7 +21752,7 @@ function Xan:CreateSideloader(config)
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 30, 0, 0),
             Size = UDim2.new(1, -30, 1, 0),
-            Font = Font = Enum.Font.GothamMedium,
+            Font = Enum.Font.Code,
             Text = text,
             TextColor3 = Color3.fromRGB(200, 200, 210),
             TextSize = 13,
@@ -23495,9 +23495,7 @@ end
 
 local ConfigurationManager = {
     SaveFolder = "XanBar",
-    CurrentConfig = nil,
-    AutoSaveOnChange = true,
-    _saveTimer = nil
+    CurrentConfig = nil
 }
 
 Xan.DefaultFlags = {}
@@ -23595,6 +23593,13 @@ function Xan:SaveConfiguration(configName)
             writefile(filePath, encoded)
         end)
         
+        self:Notify({
+            Title = "Configuration Saved",
+            Content = "Saved as '" .. configName .. "'",
+            Type = "Success",
+            Duration = 3
+        })
+        
         return true
     else
         self:Notify({
@@ -23611,6 +23616,12 @@ function Xan:LoadConfiguration(configName)
     configName = configName or "default"
     
     if not readfile then
+        self:Notify({
+            Title = "Load Not Available",
+            Content = "File system access not available.",
+            Type = "Warning",
+            Duration = 4
+        })
         return false
     end
     
@@ -23622,6 +23633,12 @@ function Xan:LoadConfiguration(configName)
     end)
     
     if not success or not content then
+        self:Notify({
+            Title = "Load Failed",
+            Content = "Configuration '" .. configName .. "' not found.",
+            Type = "Error",
+            Duration = 4
+        })
         return false
     end
     
@@ -23654,6 +23671,13 @@ function Xan:LoadConfiguration(configName)
             self:SetFlag(flag, value)
         end
     end
+    
+    self:Notify({
+        Title = "Configuration Loaded",
+        Content = "Loaded '" .. configName .. "'",
+        Type = "Success",
+        Duration = 3
+    })
     
     return true
 
@@ -25699,34 +25723,6 @@ function Xan:SetFlag(flag, value)
             end)
         end
     end
-    -- Auto-save on flag change (debounced)
-    if hasChanged and ConfigurationManager and ConfigurationManager.AutoSaveOnChange and ConfigurationManager.CurrentConfig then
-        if ConfigurationManager._saveTimer then
-            pcall(function()
-                if type(task) == "table" and type(task.cancel) == "function" then
-                    task.cancel(ConfigurationManager._saveTimer)
-                end
-            end)
-            ConfigurationManager._saveTimer = nil
-        end
-        if type(task) == "table" and type(task.delay) == "function" then
-            ConfigurationManager._saveTimer = task.delay(0.6, function()
-                pcall(function()
-                    self:SaveConfiguration(ConfigurationManager.CurrentConfig)
-                end)
-                ConfigurationManager._saveTimer = nil
-            end)
-        else
-            -- fallback if task.delay not available
-            spawn(function()
-                wait(0.6)
-                pcall(function()
-                    self:SaveConfiguration(ConfigurationManager.CurrentConfig)
-                end)
-            end)
-            ConfigurationManager._saveTimer = nil
-        end
-    end
 end
 
 function Xan:GetFlag(flag)
@@ -27699,7 +27695,7 @@ Xan.ToggleStatsWidget = function(enabled)
             Name = "FPS",
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0.5, 0),
-            Font = Font = Enum.Font.GothamMedium,
+            Font = Enum.Font.Code,
             Text = "FPS: --",
             TextColor3 = Xan.CurrentTheme.Accent,
             TextSize = 11,
@@ -27712,7 +27708,7 @@ Xan.ToggleStatsWidget = function(enabled)
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 0, 0.5, 0),
             Size = UDim2.new(1, 0, 0.5, 0),
-            Font = Font = Enum.Font.GothamMedium,
+            Font = Enum.Font.Code,
             Text = "Ping: --",
             TextColor3 = Xan.CurrentTheme.TextDim,
             TextSize = 11,
