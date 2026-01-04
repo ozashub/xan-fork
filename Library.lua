@@ -4807,8 +4807,6 @@ function Xan:CreateWindow(config)
     local minSize = config.MinSize or Vector2.new(400, 300)
     local saveConfig = config.SaveConfig ~= false
     local configName = config.ConfigName or title:gsub("%s+", "_"):lower()
-    -- expose default config name for autosave behavior
-    self.DefaultConfigName = configName
     local showUserInfo = config.ShowUserInfo ~= false
     local userAvatar = config.UserAvatar
     local userName = config.UserName or LocalPlayer.DisplayName
@@ -20281,21 +20279,7 @@ function Xan:CreateWindow(config)
             Xan:ShowBindList()
         end
     end)
-    -- expose window config name for external scripts
-    window.ConfigName = configName
-
-    -- attempt silent load of saved configuration (no notifications)
-    task.spawn(function()
-        if saveConfig and readfile then
-            pcall(function()
-                -- suppress autosave while loading
-                Xan._SuppressAutosave = true
-                Xan:LoadConfigurationSilent(configName)
-                Xan._SuppressAutosave = false
-            end)
-        end
-    end)
-
+    
     return window
 end
 
@@ -23626,107 +23610,6 @@ function Xan:SaveConfiguration(configName)
         })
         return false
     end
-end
-
-function Xan:SaveConfigurationSilent(configName)
-    configName = configName or "default"
-    
-    local data = {
-        Flags = {},
-        Version = self.Version,
-        Timestamp = os.time()
-    }
-    
-    for flag, value in pairs(self.Flags) do
-        if type(value) == "boolean" or type(value) == "number" or type(value) == "string" then
-            data.Flags[flag] = value
-        elseif typeof(value) == "Color3" then
-            data.Flags[flag] = {
-                Type = "Color3",
-                R = value.R,
-                G = value.G,
-                B = value.B
-            }
-        elseif typeof(value) == "EnumItem" then
-            data.Flags[flag] = {
-                Type = "EnumItem",
-                EnumType = tostring(value.EnumType),
-                Name = value.Name
-            }
-        elseif type(value) == "table" then
-            data.Flags[flag] = {
-                Type = "Table",
-                Value = value
-            }
-        end
-    end
-    
-    local success, encoded = pcall(function()
-        return HttpService:JSONEncode(data)
-    end)
-    
-    if not success then
-        return false
-    end
-    
-    if writefile then
-        local folderPath = ConfigurationManager.SaveFolder
-        local filePath = folderPath .. "/" .. configName .. ".json"
-        
-        pcall(function()
-            if not isfolder(folderPath) then
-                makefolder(folderPath)
-            end
-            writefile(filePath, encoded)
-        end)
-        
-        return true
-    else
-        return false
-    end
-end
-
-function Xan:LoadConfigurationSilent(configName)
-    configName = configName or "default"
-    if not readfile then
-        return false
-    end
-
-    local folderPath = ConfigurationManager.SaveFolder
-    local filePath = folderPath .. "/" .. configName .. ".json"
-
-    local success, content = pcall(function()
-        return readfile(filePath)
-    end)
-    if not success or not content then
-        return false
-    end
-
-    local decodeSuccess, data = pcall(function()
-        return HttpService:JSONDecode(content)
-    end)
-    if not decodeSuccess or not data then
-        return false
-    end
-
-    -- apply flags without notifications and while autosave suppressed by caller
-    for flag, value in pairs(data.Flags or {}) do
-        if type(value) == "table" then
-            if value.Type == "Color3" then
-                self:SetFlag(flag, Color3.new(value.R, value.G, value.B))
-            elseif value.Type == "EnumItem" then
-                pcall(function()
-                    self:SetFlag(flag, Enum[value.EnumType][value.Name])
-                end)
-            elseif value.Type == "Table" then
-                self:SetFlag(flag, value.Value)
-            end
-        else
-            self:SetFlag(flag, value)
-        end
-    end
-
-    return true
 end
 
 function Xan:LoadConfiguration(configName)
@@ -28494,17 +28377,7 @@ local _originalSetFlag = Xan.SetFlag
 
 Xan.Flag = function(name) return _originalGetFlag(Xan, name) end
 Xan.GetFlag = function(name) return _originalGetFlag(Xan, name) end
-Xan.SetFlag = function(name, val)
-    local res = _originalSetFlag(Xan, name, val)
-    -- autosave silently to the default config name when any flag changes
-    if not Xan._SuppressAutosave then
-        pcall(function()
-            local cfgName = Xan.DefaultConfigName or "default"
-            Xan:SaveConfigurationSilent(cfgName)
-        end)
-    end
-    return res
-end
+Xan.SetFlag = function(name, val) return _originalSetFlag(Xan, name, val) end
 Xan.OnFlag = function(name, cb) return Xan:OnFlagChanged(name, cb) end
 Xan.WatchFlag = Xan.OnFlag
 Xan.BindFlag = Xan.OnFlag
