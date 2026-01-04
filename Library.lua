@@ -30859,11 +30859,11 @@ do
 
 		if writefile then
 			writefile(fullPath, encoded)
-			-- ensure autoload.txt exists so the library can autoload this config on startup
+			-- ensure Config.txt exists so the library can autoload this config on startup
 			pcall(function()
-				local autopath = self.Folder .. "/settings/autoload.txt"
-				if not isfile(autopath) then
-					writefile(autopath, name)
+				local cfgpath = self.Folder .. "/settings/Config.txt"
+				if not isfile(cfgpath) then
+					writefile(cfgpath, name)
 				end
 			end)
 			return true
@@ -30952,6 +30952,19 @@ do
 	end
 
 	function SaveManager:LoadAutoloadConfig()
+		-- prefer Config.txt for autoloading
+		if isfile(self.Folder .. "/settings/Config.txt") then
+			local name = readfile(self.Folder .. "/settings/Config.txt")
+			if name and name:match("%S") then
+				name = name:gsub("^%s*(.-)%s*$","%1")
+				local success, err = self:Load(name)
+				if not success then
+					return
+				end
+			end
+			return
+		end
+		-- fallback to legacy autoload.txt
 		if isfile(self.Folder .. "/settings/autoload.txt") then
 			local name = readfile(self.Folder .. "/settings/autoload.txt")
 
@@ -31015,12 +31028,12 @@ do
 		local AutoloadButton
 		AutoloadButton = section:AddButton({Title = "Set as autoload", Description = "Current autoload config: none", Callback = function()
 			local name = SaveManager.Options.SaveManager_ConfigList.Value
-			writefile(self.Folder .. "/settings/autoload.txt", name)
+			writefile(self.Folder .. "/settings/Config.txt", name)
 			AutoloadButton:SetDesc("Current autoload config: " .. name)
 		end})
 
-		if isfile(self.Folder .. "/settings/autoload.txt") then
-			local name = readfile(self.Folder .. "/settings/autoload.txt")
+		if isfile(self.Folder .. "/settings/Config.txt") then
+			local name = readfile(self.Folder .. "/settings/Config.txt")
 			AutoloadButton:SetDesc("Current autoload config: " .. name)
 		end
 
