@@ -25702,15 +25702,30 @@ function Xan:SetFlag(flag, value)
     -- Auto-save on flag change (debounced)
     if hasChanged and ConfigurationManager and ConfigurationManager.AutoSaveOnChange and ConfigurationManager.CurrentConfig then
         if ConfigurationManager._saveTimer then
-            pcall(task.cancel, ConfigurationManager._saveTimer)
-            ConfigurationManager._saveTimer = nil
-        end
-        ConfigurationManager._saveTimer = task.delay(0.6, function()
             pcall(function()
-                self:SaveConfiguration(ConfigurationManager.CurrentConfig)
+                if type(task) == "table" and type(task.cancel) == "function" then
+                    task.cancel(ConfigurationManager._saveTimer)
+                end
             end)
             ConfigurationManager._saveTimer = nil
-        end)
+        end
+        if type(task) == "table" and type(task.delay) == "function" then
+            ConfigurationManager._saveTimer = task.delay(0.6, function()
+                pcall(function()
+                    self:SaveConfiguration(ConfigurationManager.CurrentConfig)
+                end)
+                ConfigurationManager._saveTimer = nil
+            end)
+        else
+            -- fallback if task.delay not available
+            spawn(function()
+                wait(0.6)
+                pcall(function()
+                    self:SaveConfiguration(ConfigurationManager.CurrentConfig)
+                end)
+            end)
+            ConfigurationManager._saveTimer = nil
+        end
     end
 end
 
